@@ -1,7 +1,7 @@
 import binascii
 from collections import defaultdict
 
-# The given ciphertexts
+# This are the given ciphertext with the target cipher too as well
 ciphertexts = [
     "315c4eeaa8b5f8aaf9174145bf43e1784b8fa00dc71d885a804e5ee9fa40b16349c146fb778cdf2d3aff021dfff5b403b510d0d0455468aeb98622b137dae857553ccd8883a7bc37520e06e515d22c954eba5025b8cc57ee59418ce7dc6bc41556bdb36bbca3e8774301fbcaa3b83b220809560987815f65286764703de0f3d524400a19b159610b11ef3e",
     "234c02ecbbfbafa3ed18510abd11fa724fcda2018a1a8342cf064bbde548b12b07df44ba7191d9606ef4081ffde5ad46a5069d9f7f543bedb9c861bf29c7e205132eda9382b0bc2c5c4b45f919cf3a9f1cb74151f6d551f4480c82b2cb24cc5b028aa76eb7b4ab24171ab3cdadb8356f",
@@ -17,25 +17,25 @@ ciphertexts = [
 
 target = "32510ba9babebbbefd001547a810e67149caee11d945cd7fc81a05e9f85aac650e9052ba6a8cd8257bf14d13e6f0a803b54fde9e77472dbff89d71b57bddef121336cb85ccb8f3315f4b52e301d16e9f52f904"
 
-# Convert all ciphertexts to bytes
+# We first convert all ciphertexts to bytes
 cts = [binascii.unhexlify(ct) for ct in ciphertexts]
 target_ct = binascii.unhexlify(target)
 
-# The key is as long as the longest ciphertext
+# The key is as long as the longest ciphertext to correct issues with odd lengths
 max_len = max(len(ct) for ct in cts)
 key = bytearray(max_len)
 
-# For each position in the key, try to find the most probable byte
+# For each position in the key we try to find the most probable byte
 for i in range(max_len):
-    # For each possible key byte (0-255), count how many valid plaintext bytes it would produce
+    # For each possible key byte (0-255), we count the number of valid plaintext bytes it would produce
     counts = defaultdict(int)
     
     for ct in cts:
         if i < len(ct):
             ct_byte = ct[i]
             
-            # Test if XORing with this byte would produce a space (0x20) in any ciphertext
-            # If so, then the key byte is ct_byte ^ 0x20 (since space XOR key = ct_byte)
+            # We test if XORing with this byte would produce a space (0x20) in any ciphertext
+            # and if that happen the key byte is ct_byte ^ 0x20 (since space XOR key = ct_byte)
             possible_key = ct_byte ^ 0x20
             counts[possible_key] += 1
             
@@ -50,23 +50,23 @@ for i in range(max_len):
                 possible_key = ct_byte ^ c
                 counts[possible_key] += 0.5
     
-    # The most probable key byte is the one with the highest count
+    # Here we reliased that the most probable key byte is the one with the highest count
     if counts:
         best_key = max(counts.items(), key=lambda x: x[1])[0]
         key[i] = best_key
 
-# Decrypt the target ciphertext using the recovered key
+# We thus decrypt the target ciphertext using the recovered key
 plaintext = bytearray()
 for i in range(len(target_ct)):
     if i < len(key):
         plaintext.append(target_ct[i] ^ key[i])
     else:
-        plaintext.append(ord('?'))  # For bytes beyond our recovered key
+        plaintext.append(ord('?'))  
 
-# Convert to string, replacing non-printable characters
+# Here we convert the decrypted ciphertext to string, replacing non-printable characters
 decrypted = ''.join(chr(b) if 32 <= b < 127 else '.' for b in plaintext)
 print("Decrypted message:", decrypted)
 
-# Extract the secret message (the readable part)
+# Then we finally extract the secret message (the readable part)
 secret_message = decrypted.split('.')[0]
 print("\nSecret message:", secret_message)
